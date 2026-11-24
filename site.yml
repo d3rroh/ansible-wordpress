@@ -1,9 +1,6 @@
----
-# Each server in [wordpress] gets an independent MySQL + WordPress stack.
-# Servers are deployed in parallel (forks in ansible.cfg).
-
 - name: Deploy standalone MySQL + WordPress on each server
   hosts: wordpress
+  become: true
   roles:
     - common
     - mysql
