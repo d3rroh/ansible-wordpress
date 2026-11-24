@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+[mysqld]
+bind-address            = {{ mysql_bind_address }}
+mysqlx-bind-address     = 127.0.0.1
+max_connections         = {{ mysql_max_connections }}
+innodb_buffer_pool_size = {{ mysql_innodb_buffer_pool_size }}
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_unicode_ci

@@ -1,0 +1,36 @@
+<?php
+/**
+ * {{ ansible_managed }}
+ * Managed by Ansible; do not edit by hand.
+ */
+
+define( 'DB_NAME',     '{{ wp_db_name }}' );
+define( 'DB_USER',     '{{ wp_db_user }}' );
+define( 'DB_PASSWORD', '{{ wp_db_password | replace("\\", "\\\\") | replace("'", "\\'") }}' );
+define( 'DB_HOST',     '{{ db_host }}' );
+define( 'DB_CHARSET',  'utf8mb4' );
+define( 'DB_COLLATE',  '' );
+
+{% for name in wp_salt_names %}
+define( '{{ name }}', '{{ wp_salts[name] }}' );
+{% endfor %}
+
+$table_prefix = '{{ wp_db_prefix }}';
+
+define( 'WP_HOME',    '{{ wp_site_url }}' );
+define( 'WP_SITEURL', '{{ wp_site_url }}' );
+
+// Respect HTTPS if a proxy/CDN (e.g. Cloudflare) terminates TLS in front
+if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ) {
+    $_SERVER['HTTPS'] = 'on';
+}
+
+define( 'DISALLOW_FILE_EDIT', true );
+
+define( 'WP_DEBUG', false );
+
+if ( ! defined( 'ABSPATH' ) ) {
+    define( 'ABSPATH', __DIR__ . '/' );
+}
+
+require_once ABSPATH . 'wp-settings.php';

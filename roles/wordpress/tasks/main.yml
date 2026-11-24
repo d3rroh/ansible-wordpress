@@ -1,0 +1,120 @@
+---
+- name: Install Apache and PHP
+  ansible.builtin.apt:
+    name: "{{ ['apache2', 'default-mysql-client'] + php_packages }}"
+    state: present
+
+- name: Enable Apache modules
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - rewrite
+  notify: Restart apache
+
+- name: Check whether WordPress is already unpacked
+  ansible.builtin.stat:
+    path: "{{ wp_install_dir }}/wp-settings.php"
+  register: wp_core
+
+- name: Download WordPress
+  ansible.builtin.get_url:
+    url: "{{ wp_download_url }}"
+    dest: /tmp/wordpress.tar.gz
+    mode: "0644"
+  when: not wp_core.stat.exists
+
+- name: Unpack WordPress
+  ansible.builtin.unarchive:
+    src: /tmp/wordpress.tar.gz
+    dest: "{{ wp_install_dir | dirname }}"
+    remote_src: true
+    owner: "{{ wp_owner }}"
+    group: "{{ wp_group }}"
+  when: not wp_core.stat.exists
+
+- name: Derive this site's salts (seed + hostname, stable across runs)
+  ansible.builtin.set_fact:
+    wp_salts: "{{ wp_salts | default({}) | combine({item: (vault_wp_salt_seed ~ inventory_hostname ~ item) | hash('sha512')}) }}"
+  loop: "{{ wp_salt_names }}"
+  no_log: true
+
+- name: Deploy wp-config.php
+  ansible.builtin.template:
+    src: wp-config.php.j2
+    dest: "{{ wp_install_dir }}/wp-config.php"
+    owner: "{{ wp_owner }}"
+    group: "{{ wp_group }}"
+    mode: "0640"
+
+- name: Ensure wp-content is writable by the web server
+  ansible.builtin.file:
+    path: "{{ wp_install_dir }}/wp-content"
+    state: directory
+    owner: "{{ wp_owner }}"
+    group: "{{ wp_group }}"
+    recurse: true
+
+- name: Deploy Apache vhost
+  ansible.builtin.template:
+    src: wordpress.conf.j2
+    dest: /etc/apache2/sites-available/wordpress.conf
+    mode: "0644"
+  notify: Reload apache
+
+- name: Enable WordPress site
+  ansible.builtin.command: a2ensite wordpress.conf
+  args:
+    creates: /etc/apache2/sites-enabled/wordpress.conf
+  notify: Reload apache
+
+- name: Disable default site
+  ansible.builtin.command: a2dissite 000-default.conf
+  args:
+    removes: /etc/apache2/sites-enabled/000-default.conf
+  notify: Reload apache
+
+- name: Ensure Apache is running and enabled
+  ansible.builtin.service:
+    name: apache2
+    state: started
+    enabled: true
+
+- name: Allow HTTP/HTTPS
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: ["80", "443"]
+  when: firewall_enabled
+
+- name: Apply web server changes before install step
+  ansible.builtin.meta: flush_handlers
+
+# ---- One-time site install via WP-CLI (each server installs its own site) ----
+- name: Install WP-CLI
+  ansible.builtin.get_url:
+    url: "{{ wp_cli_url }}"
+    dest: /usr/local/bin/wp
+    mode: "0755"
+
+- name: Check if WordPress is installed in the database
+  ansible.builtin.command: >
+    wp core is-installed --allow-root --path={{ wp_install_dir }}
+  register: wp_installed
+  changed_when: false
+  failed_when: wp_installed.rc not in [0, 1]
+
+- name: Run WordPress installer
+  ansible.builtin.command: >
+    wp core install --allow-root --path={{ wp_install_dir }}
+    --url={{ wp_site_url | quote }}
+    --title={{ wp_site_title | quote }}
+    --admin_user={{ wp_admin_user | quote }}
+    --admin_password={{ wp_admin_password | quote }}
+    --admin_email={{ wp_admin_email | quote }}
+    --locale={{ wp_locale }}
+    --skip-email
+  when: wp_installed.rc == 1
+  changed_when: true
+  no_log: true

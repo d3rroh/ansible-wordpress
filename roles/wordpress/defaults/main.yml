@@ -1,0 +1,28 @@
+---
+wp_download_url: https://wordpress.org/latest.tar.gz
+wp_cli_url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+wp_owner: www-data
+wp_group: www-data
+
+php_packages:
+  - php
+  - php-mysql
+  - php-curl
+  - php-gd
+  - php-mbstring
+  - php-xml
+  - php-zip
+  - php-intl
+  - php-imagick
+  - libapache2-mod-php
+
+# Salt names. Values are derived per host from vault_wp_salt_seed.
+wp_salt_names:
+  - AUTH_KEY
+  - SECURE_AUTH_KEY
+  - LOGGED_IN_KEY
+  - NONCE_KEY
+  - AUTH_SALT
+  - SECURE_AUTH_SALT
+  - LOGGED_IN_SALT
+  - NONCE_SALT

@@ -1,0 +1,11 @@
+---
+mysql_packages:
+  - mysql-server
+  - mysql-client
+mysql_service: mysql
+mysql_socket: /run/mysqld/mysqld.sock
+mysql_conf_dir: /etc/mysql/mysql.conf.d
+# Local only: WordPress on the same box is the only client.
+mysql_bind_address: 127.0.0.1
+mysql_innodb_buffer_pool_size: 256M
+mysql_max_connections: 150

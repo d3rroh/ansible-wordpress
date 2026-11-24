@@ -1,0 +1,4 @@
+---
+# Site-wide vars (wp_*, db_*) are shared between roles on purpose.
+skip_list:
+  - var-naming[no-role-prefix]

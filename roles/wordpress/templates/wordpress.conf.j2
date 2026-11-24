@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+<VirtualHost *:80>
+    ServerName {{ wp_domain }}
+    ServerAlias www.{{ wp_domain }}
+    DocumentRoot {{ wp_install_dir }}
+
+    <Directory {{ wp_install_dir }}>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    <FilesMatch "^(wp-config\.php|readme\.html|xmlrpc\.php)$">
+        Require all denied
+    </FilesMatch>
+
+    ErrorLog ${APACHE_LOG_DIR}/wordpress_error.log
+    CustomLog ${APACHE_LOG_DIR}/wordpress_access.log combined
+</VirtualHost>
